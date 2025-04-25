@@ -1,26 +1,26 @@
-﻿using Microsoft.Extensions.Options;
-using RabbitMQ.Client;
+﻿using RabbitMQ.Client;
+using Microsoft.Extensions.Options;
 using RabbitMQ.Client.Events;
-using SMSMicroservice.Models;
-using SMSMicroservice.Models.Configurations;
-using SMSMicroservice.Services.Interfaces;
 using System.Text;
+using NotificationStatusMicroserviceervice.Models.Configurations;
+using NotificationStatusMicroserviceervice.Models;
+using NotificationStatusMicroserviceervice.Data;
+using NotificationStatusMicroserviceervice.Models.Entity;
 
-namespace SMSMicroservice.Services
+namespace EmailMicroservice.Services
 {
     public class RabbitConsumerService : BackgroundService
     {
         private readonly RabbitConfiguration configuration;
         private IConnection connection;
         private IModel channel;
-        private readonly ISmsSender smsService;
-        private readonly IRabbitProducer producer;
+        private readonly AppDbContext context;
 
-        public RabbitConsumerService(IOptions<RabbitConfiguration> config, ISmsSender sender, IRabbitProducer producer)
+        public RabbitConsumerService(IOptions<RabbitConfiguration> config, AppDbContext context)
         {
-            this.producer = producer;
-            smsService = sender;
+            this.context = context;
             configuration = config.Value;
+
             var factory = new ConnectionFactory
             {
                 HostName = configuration.HostName,
@@ -32,15 +32,15 @@ namespace SMSMicroservice.Services
             connection = factory.CreateConnection();
             channel = connection.CreateModel();
 
-            channel.ExchangeDeclare(exchange: configuration.Exchange, type: ExchangeType.Direct, durable: true);
+            channel.ExchangeDeclare(exchange: configuration.Exchange, type: ExchangeType.Topic, durable: true);
 
-            channel.QueueDeclare(queue: "sms",
+            channel.QueueDeclare(queue: "status_log_queue",
                                   durable: true,
                                   exclusive: false,
                                   autoDelete: false,
                                   arguments: null);
 
-            channel.QueueBind(queue: "sms", exchange: configuration.Exchange, routingKey: "sms");
+            channel.QueueBind(queue: "status_log_queue", exchange: configuration.Exchange, routingKey: "#");
         }
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
@@ -53,33 +53,22 @@ namespace SMSMicroservice.Services
                 var message = System.Text.Json.JsonSerializer.Deserialize<NotificationRequest>(messageJson);
                 if (message != null)
                 {
-
-                    //var resultSave = await smsService.SendSMSAsync(message.Target, message.Message);
-                    //if (!resultSave.Success)
-                    //{
-                    //    Console.WriteLine($"Ошибка при отправке: {resultSave.Message}");
-                    //}
-
-                    Console.WriteLine($"TargetPhone: {message.Target}\tMessage: {message.Message}");
                     NotificationLog log = new NotificationLog()
                     {
+                        Id = Guid.NewGuid(),
                         Type = message.Type,
-                        Status = StatusSending.Success,
-                        Message = "Сообщение отправлено успешно"
+                        Status = message.Status,
+                        Message = message.Message
                     };
-                    producer.Publish(log);
+                    await context.NotificationLogs.AddAsync(log);
+                    await context.SaveChangesAsync();
                 }
-                NotificationLog log2 = new NotificationLog()
-                {
-                    Type = message.Type,
-                    Status = StatusSending.Failed,
-                    Message = "Ошибка при отправке сообщения"
-                };
+
 
                 channel.BasicAck(deliveryTag: ea.DeliveryTag, multiple: false);
             };
 
-            channel.BasicConsume(queue: "sms", autoAck: false, consumer: consumer);
+            channel.BasicConsume(queue: "status_log_queue", autoAck: false, consumer: consumer);
 
             return Task.CompletedTask;
         }

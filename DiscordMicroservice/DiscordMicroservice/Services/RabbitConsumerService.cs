@@ -17,9 +17,11 @@ namespace EmailMicroservice.Services
         private IConnection connection;
         private IModel channel;
         private readonly IDiscordService discordService;
+        private readonly IRabbitProducer producer;
 
-        public RabbitConsumerService(IOptions<RabbitConfiguration> config, IDiscordService service)
+        public RabbitConsumerService(IOptions<RabbitConfiguration> config, IDiscordService service, IRabbitProducer producer)
         {
+            this.producer = producer;
             discordService = service;
             configuration = config.Value;
 
@@ -58,8 +60,22 @@ namespace EmailMicroservice.Services
                     var resultSave = await discordService.SendMessageAsync(message.Target, message.Message);
                     if (!resultSave.Success)
                     {
+                        NotificationLog log = new NotificationLog()
+                        {
+                            Type = message.Type,
+                            Status = StatusSending.Success,
+                            Message = "Сообщение отправлено успешно"
+                        };
+                        producer.Publish(log);
                         Console.WriteLine($"Ошибка при отправке: {resultSave.Message}");
                     }
+                    NotificationLog log2 = new NotificationLog()
+                    {
+                        Type = message.Type,
+                        Status = StatusSending.Failed,
+                        Message = "Ошибка при отправке сообщения"
+                    };
+                    producer.Publish(log2);
                 }
 
 

@@ -15,6 +15,7 @@ builder.Services.AddSwaggerGen();
 // Services
 builder.Services.AddHostedService<RabbitConsumerService>();
 builder.Services.AddSingleton<ISmsSender, SMSService>();
+builder.Services.AddSingleton<IRabbitProducer, RabbitProducerService>();
 
 // Connfigurations
 builder.Services.Configure<RabbitConfiguration>(builder.Configuration.GetSection("RabbitMQ"));

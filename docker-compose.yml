@@ -52,6 +52,20 @@ services:
     depends_on:
       - rabbitmq2
     restart: always
+
+  ntstatusdmicroservice:
+    container_name: ntstatusdmicroservice
+    build:
+      context: ./NotificationStatusMicroserviceervice
+      dockerfile: /DOCKERFILE
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    networks:
+      - mynetwork
+    depends_on:
+      - rabbitmq2
+      - postgres2
+    restart: always
     
   rabbitmq2:
     image: "rabbitmq:management"
@@ -66,10 +80,26 @@ services:
       - "15672:15672"
     volumes:
       - rabbitmq2_data:/var/lib/rabbitmq
+
+  postgres2:
+    image: postgres:15
+    container_name: postgres2
+    restart: always
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    networks:
+      - mynetwork
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres2_data:/var/lib/postgresql/data
     
 
 volumes:
   rabbitmq2_data:
+  postgres2_data:
 
 networks:
   mynetwork:  

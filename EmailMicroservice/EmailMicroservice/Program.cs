@@ -13,6 +13,7 @@ builder.Services.AddSwaggerGen();
 
 // Services
 builder.Services.AddSingleton<IEmailService, EmailService>();
+builder.Services.AddSingleton<IRabbitProducer, RabbitProducerService>();
 builder.Services.AddHostedService<RabbitConsumerService>();
 
 // Connfigurations

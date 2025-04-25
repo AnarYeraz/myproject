@@ -1,7 +1,8 @@
-using DiscordMicroservice.Models.Confidurations;
-using DiscordMicroservice.Services;
-using DiscordMicroservice.Services.Interfaces;
 using EmailMicroservice.Services;
+using Microsoft.EntityFrameworkCore;
+using NotificationStatusMicroserviceervice.Data;
+using NotificationStatusMicroserviceervice.Models.Configurations;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,14 +15,23 @@ builder.Services.AddSwaggerGen();
 
 // Services
 builder.Services.AddHostedService<RabbitConsumerService>();
-builder.Services.AddSingleton<IDiscordService, DiscordService>();
-builder.Services.AddSingleton<IRabbitProducer, RabbitProducerService>();
+
+// DB
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Connfigurations
 builder.Services.Configure<RabbitConfiguration>(builder.Configuration.GetSection("RabbitMQ"));
-builder.Services.Configure<DiscordConfig>(builder.Configuration.GetSection("Discord"));
+
 
 var app = builder.Build();
+
+// Configure
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    dbContext.Database.Migrate();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
