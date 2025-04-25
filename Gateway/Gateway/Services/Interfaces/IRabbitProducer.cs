@@ -1,7 +1,9 @@
-﻿namespace Gateway.Services.Interfaces
+﻿using Gateway.Models;
+
+namespace Gateway.Services.Interfaces
 {
     public interface IRabbitProducer
     {
-        public (bool Sucess, string? Message) Publish();
+        public (bool Success, string? Message) Publish(NotificationRequest request);
     }
 }

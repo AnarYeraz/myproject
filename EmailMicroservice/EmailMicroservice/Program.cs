@@ -1,6 +1,6 @@
-using Gateway.Models.Configurations;
-using Gateway.Services;
-using Gateway.Services.Interfaces;
+using EmailMicroservice.Models.Configurations;
+using EmailMicroservice.Services;
+using EmailMicroservice.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,17 +11,22 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Services
+builder.Services.AddSingleton<IEmailService, EmailService>();
+builder.Services.AddHostedService<RabbitConsumerService>();
+
 // Connfigurations
 builder.Services.Configure<RabbitConfiguration>(builder.Configuration.GetSection("RabbitMQ"));
-
-// Services
-builder.Services.AddSingleton<IRabbitProducer, RabbitProducerService>();
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("SMTP"));
 
 var app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI();
-
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.UseHttpsRedirection();
 
