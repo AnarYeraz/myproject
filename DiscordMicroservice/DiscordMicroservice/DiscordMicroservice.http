@@ -1,0 +1,6 @@
+@DiscordMicroservice_HostAddress = http://localhost:5277
+
+GET {{DiscordMicroservice_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

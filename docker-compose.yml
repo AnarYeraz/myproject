@@ -26,8 +26,33 @@ services:
     depends_on:
       - rabbitmq2
     restart: always
-    
   
+  smsmicroservice:
+    container_name: smsmicroservice
+    build:
+      context: ./SMSMicroservice
+      dockerfile: /DOCKERFILE
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    networks:
+      - mynetwork
+    depends_on:
+      - rabbitmq2
+    restart: always
+  
+  discordmicroservice:
+    container_name: discordmicroservice
+    build:
+      context: ./DiscordMicroservice
+      dockerfile: /DOCKERFILE
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    networks:
+      - mynetwork
+    depends_on:
+      - rabbitmq2
+    restart: always
+    
   rabbitmq2:
     image: "rabbitmq:management"
     container_name: rabbitmq2
